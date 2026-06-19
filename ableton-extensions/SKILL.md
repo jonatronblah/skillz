@@ -1,6 +1,6 @@
 ---
 name: ableton-extensions
-description: Build extensions for Ableton Live using the @ableton-extensions/sdk. WHEN: Ableton extension, Ableton Live plugin, Live SDK, manipulate Live Set, create clips/tracks, context menu, webview dialog, @ableton-extensions/sdk, extensions-cli, manifest.json, activate function, .ablx packaging, warp mode, arrangement selection, render audio, import into project.
+description: "Build extensions for Ableton Live using the @ableton-extensions/sdk. WHEN: Ableton extension, Ableton Live plugin, Live SDK, manipulate Live Set, create clips/tracks, context menu, webview dialog, @ableton-extensions/sdk, extensions-cli, manifest.json, activate function, .ablx packaging, warp mode, arrangement selection, render audio, import into project."
 ---
 
 # Ableton Extensions SDK
@@ -32,21 +32,22 @@ export function activate(activation: ActivationContext) {
 
 ## The `context` Object (ExtensionContext)
 
-| Service | Purpose |
-|---------|---------|
-| `context.application` | Root of model — access `application.song` (tracks, clips, scenes, tempo, scale). |
-| `context.commands` | `registerCommand(id, callback)` — named actions triggered by UI or code. |
-| `context.ui` | `registerContextMenuAction`, `showModalDialog`, `withinProgressDialog`. |
-| `context.resources` | `importIntoProject(path)`, `renderPreFxAudio(track, start, end)`. |
-| `context.environment` | `storageDirectory`, `tempDirectory`, `language` (persistent vs temp files). |
-| `context.getObjectFromHandle` | Resolve a `Handle` into a typed SDK object (e.g. `Track`, `Clip`). |
-| `context.withinTransaction` | Group multiple mutations into one undo step (sync callback). |
+| Service                       | Purpose                                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| `context.application`         | Root of model — access `application.song` (tracks, clips, scenes, tempo, scale). |
+| `context.commands`            | `registerCommand(id, callback)` — named actions triggered by UI or code.         |
+| `context.ui`                  | `registerContextMenuAction`, `showModalDialog`, `withinProgressDialog`.          |
+| `context.resources`           | `importIntoProject(path)`, `renderPreFxAudio(track, start, end)`.                |
+| `context.environment`         | `storageDirectory`, `tempDirectory`, `language` (persistent vs temp files).      |
+| `context.getObjectFromHandle` | Resolve a `Handle` into a typed SDK object (e.g. `Track`, `Clip`).               |
+| `context.withinTransaction`   | Group multiple mutations into one undo step (sync callback).                     |
 
 ## Key Concepts
 
 **Handles** — Lightweight IDs (`{ id: bigint }`) referencing Live objects. Resolve via `context.getObjectFromHandle(handle, Class)`. Handles become invalid on deletion, move, or session change — don't cache long-term.
 
 **Polymorphism** — Use base classes to write generic code, narrow with `instanceof`:
+
 - `Track` → `AudioTrack`, `MidiTrack`
 - `Clip` → `AudioClip`, `MidiClip`
 - `Device` → `Simpler`, `RackDevice` → `DrumRack`
@@ -55,6 +56,7 @@ export function activate(activation: ActivationContext) {
 **Transactions** — Group mutations into one undo step. Callback is **synchronous**; for async ops (create clips/tracks), return `Promise.all([...])` and await the transaction call. Cannot create-then-modify in the same transaction.
 
 **Commands & Context Menus** — Register a command, then bind it to a right-click scope:
+
 ```ts
 context.commands.registerCommand("my-ext.action", (handle) => {
   const clip = context.getObjectFromHandle(handle as Handle, Clip);
@@ -99,6 +101,7 @@ CLI direct: `npx extensions-cli run --live "<Live path>" [--inspect] [--storage-
 **Dev cycle**: Enable Developer Mode in Live's Preferences → Extensions. Run `npm start`, edit, re-run `npm start` (no Live restart needed).
 
 **Logs**: `console.*` output goes to `ExtensionHost.txt`:
+
 - Windows: `%APPDATA%\Ableton\Live x.x.x\Preferences\ExtensionHost.txt`
 - macOS: `~/Library/Preferences/Ableton/Live x.x.x/ExtensionHost.txt`
 
