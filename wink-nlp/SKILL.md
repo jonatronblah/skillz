@@ -1,6 +1,6 @@
 ---
 name: wink-nlp
-description: Use wink-nlp for natural language processing in JavaScript/TypeScript — tokenization, sentence boundaries, named entities, POS tags, lemmas/stems, sentiment, custom entity patterns, BM25 search, and word embeddings — in Node.js or fully in the browser (bundled with wink-eng-lite-web-model). WHEN: wink-nlp, winkjs, wink-nlp in browser, client-side NLP, tokenize text JavaScript, extract entities JS, sentiment analysis JavaScript, BM25 JavaScript, NLP without Python.
+description: "Use wink-nlp for natural language processing in JavaScript/TypeScript — tokenization, sentence boundaries, named entities, POS tags, lemmas/stems, sentiment, custom entity patterns, BM25 search, and word embeddings — in Node.js or fully in the browser (bundled with wink-eng-lite-web-model). WHEN: wink-nlp, winkjs, wink-nlp in browser, client-side NLP, tokenize text JavaScript, extract entities JS, sentiment analysis JavaScript, BM25 JavaScript, NLP without Python."
 ---
 
 # wink-nlp

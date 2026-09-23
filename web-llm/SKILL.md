@@ -1,6 +1,6 @@
 ---
 name: web-llm
-description: Use WebLLM (@mlc-ai/web-llm) to run LLMs entirely in the browser with WebGPU acceleration — no server needed. OpenAI-compatible chat completions, streaming, JSON mode, function calling, vision, embeddings, web-worker and service-worker engines, cached model weights for offline reuse. Use for on-device / in-browser LLM features in JavaScript/TypeScript. WHEN: web-llm, WebLLM, MLC, run LLM in browser, in-browser inference, WebGPU LLM, client-side chatbot, on-device AI JavaScript, offline LLM.
+description: "Use WebLLM (@mlc-ai/web-llm) to run LLMs entirely in the browser with WebGPU acceleration — no server needed. OpenAI-compatible chat completions, streaming, JSON mode, function calling, vision, embeddings, web-worker and service-worker engines, cached model weights for offline reuse. Use for on-device / in-browser LLM features in JavaScript/TypeScript. WHEN: web-llm, WebLLM, MLC, run LLM in browser, in-browser inference, WebGPU LLM, client-side chatbot, on-device AI JavaScript, offline LLM."
 ---
 
 # WebLLM
