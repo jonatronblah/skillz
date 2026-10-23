@@ -305,7 +305,8 @@ function init()
   ii.jf.run_mode(1)
   ii.jf.run(0)              -- 0V = flat amplitude cycle; vary for grooves
   for ch = 1, 6 do
-    ii.jf.play_voice(ch, ({4, 5, 7, 8, 11, 13})[ch], -1)  -- divs, indefinite repeats
+    -- Geode args are s16V: divide desired integers by 1638.3 (see §5)
+    ii.jf.play_voice(ch, ({4, 5, 7, 8, 11, 13})[ch]/1638.3, -1/1638.3)
   end
 end
 ```
@@ -347,7 +348,7 @@ end
 | Doc heading `ii.crow.run_mode` | Typo — real name `ii.jf.run_mode` |
 | `get('tsc')` values | **Unresolved**: doc 1/2/3 vs firmware comment 0/1/2 |
 | Geode `divs`/`repeats` via crow | **Resolved**: args are `s16V` (×1638.3), Geode reads wire ints → pass `divs/1638.3`; order is `(divs, repeats)` (jf.lua) |
-| `retune` args | `s8` raw 0–127, **not** scaled — never divide by 1638 |
+| `retune` args | `s8` raw 0–127, **not** scaled — never divide by 1638.3 |
 
 ---
 

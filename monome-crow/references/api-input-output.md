@@ -190,9 +190,12 @@ Internally this is `pulse()` on that output's ASL plus a coroutine doing
 `output[n].action` to any other shape after enabling.
 
 ```lua
--- zero-script 4-way divider (community classic):
+-- zero-script divider bank (community classic):
 clock.tempo = 120
-for i = 1, 4 do output[i]:clock(i/4) end   -- 1:1, ÷2, ÷3, ÷4
+for i = 1, 4 do output[i]:clock(i/4) end
+-- periods 1/4, 2/4, 3/4, 4/4 beats = every 1st/2nd/3rd/4th 16th-note:
+-- out1 = 16ths ("straight"), out2 = 8ths, out3 = dotted-8ths, out4 = quarters.
+-- For divisors of the *beat* (1,2,3,4 beats per pulse) use output[i]:clock(i).
 ```
 
 ## Actions (ASL)

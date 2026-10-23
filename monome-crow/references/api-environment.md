@@ -79,7 +79,7 @@ public{seconds = 1}:range(0.001, 10):type('exp')    -- exponential scaling hint 
 public{count = 0}:type('int')                       -- integer steps
 public{readonly = 'hello'}:type('@')                -- host read-only
 public{readint = 22}:type('@int')                   -- read-only int
-public{myslide = 0}:range{-5, 10}:type('slider')    -- slider UI hint
+public{myslide = 0}:range(-5, 10):type('slider')     -- slider UI hint
 public{myopt = '+'}:options{'+', '-', '*', '/'}     -- enumerated options (invalid sets IGNORED)
 public{speed = 1.0}:action(update_speed)            -- fn(value) on remote (and local) update
 public.xrange(min, max)                             -- undocumented: range + 'exp' in one

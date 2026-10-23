@@ -129,8 +129,13 @@ input[1].stream = function(v) output[1].dyn.freq = 1 + v end
 2. **Values snapshot at stage start** — changing `output[1].dyn.time` mid-stage does *not*
    retarget the motion in flight; it applies at the next stage/next run. For instant response use
    many short stages (the "stepped LFO" technique in `community-techniques.md`).
-3. ASL stages cannot contain **functions** — error: *"Do you have a function in your ASL? Replace
-   it with dyn."* Use `dyn{}` values or closures outside.
+3. **Functions in ASL are limited and position-dependent.** The compiler errors *"Do you have a
+   function in your ASL? Replace it with dyn."* when a function turns up where it expects a
+   numeric expression (e.g. inside `to()` destination slots or dyn math). Two function positions
+   *have* been observed working on real firmware — bare stage elements
+   (`loop{ function() ii.faders[1].get(1) end, to(5,1), to(0,1) }`) and built-in action arguments
+   (`ar(get_a, get_d)`) — see `community-techniques.md` §4.9/§5.7. Treat function support as
+   position- and version-dependent; prefer `dyn{}` for anything that must be reliable.
 
 ## Resource limits (per output, `lib/casl.h`)
 

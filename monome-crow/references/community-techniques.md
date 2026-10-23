@@ -99,8 +99,11 @@ end
 clock, output 2 is divided by 2, out 3 is divided by 3 and out 4 by 4."
 
 Voltage-controlled variant ("if you want something you can control with voltage, instead of a
-computer") — note this one writes `output[i]:clock(1/i)`, which is what actually produces 1, 1/2,
-1/3, 1/4:
+computer") — note this one writes `output[i]:clock(1/i)`: periods of 1, 1/2, 1/3, 1/4 **beats**
+(1–4 pulses per beat — a multiplier bank). The first snippet's `clock(i/4)` gives periods of
+1/4, 2/4, 3/4, 4/4 beats — every 1st/2nd/3rd/4th **16th-note**, which is what Justmat's
+"divided by 2/3/4" means. (`:clock(div)` takes a **period in beats**, same units as
+`clock.sync`.)
 
 ```lua
 -- clock source thing
@@ -1507,7 +1510,10 @@ demonstrates `input[2]` held at steady 1V as a secondary-mode switch.)
 
 ### 4.9 Getter functions as ASL arguments: `ar(get_a, get_d)` (bloc)
 
-ASL stage args accept **functions evaluated at runtime** — pass `get_a`/`get_d` (not calls) to keep
+ASL stage args accept **functions evaluated at runtime** in these positions (built-in action args;
+likewise bare stage elements, §5.7) — note function support is position- and version-dependent:
+the compiler's `Do you have a function in your ASL?` error fires where numeric expressions are
+expected (`api-asl.md`). Pass `get_a`/`get_d` (not calls) to keep
 attack/release live while the envelope runs
 ([bloc, 25937/89](https://llllllll.co/t/crow-strategies-just-friends/25937/89)):
 
@@ -1584,7 +1590,7 @@ next Crow firmware release. I've got proper polyphony working already"
 [25937/39](https://llllllll.co/t/crow-strategies-just-friends/25937/39)) — treat 10 ms spacing as the
 legacy workaround, and verify on your firmware. See `troubleshooting.md`.
 
-### 5.2 Synthesis vs Geode argument semantics — and the /1638.4 wrinkle
+### 5.2 Synthesis vs Geode argument semantics — and the ÷1638.3 wrinkle
 
 **Status: resolved against crow firmware source** (see `ii-just-friends.md` §5 for the full
 treatment). Two layers of confusion exist in the community record:
@@ -2254,7 +2260,7 @@ Named scripts from the threads and their repos — all worth reading or cloning.
 | population-crowth | xmacex | [25974/279](https://llllllll.co/t/crow-druid-scripts/25974/279), [repo](https://github.com/xmacex/population-crowth) | Logistic map chaos source, `public.view.output[i]()` visualization |
 | dual-ar-envelopes.lua | EvanEverfield | [25974/278](https://llllllll.co/t/crow-druid-scripts/25974/278) | txi-controlled dual AR envelopes with `done` end-of-fall trigs, response curves, secondary mode |
 | stepped LFO / pause gate | EvanEverfield | [25974/284](https://llllllll.co/t/crow-druid-scripts/25974/284) | Mid-cycle-modulatable stepped oscillator via `dyn:step():wrap()`, `asl._if`/`asl._while` |
-| wdelrandjump.lua | coreyr | [25974/292](https://llllllll.co/t/crow-druid-scripts/25974/292) | W/ delay buffer position jumper: random `ii.wdel.positionslice` + random CV outs + scale-quantized out |
+| wdelrandjump.lua | coreyr | [25974/292](https://llllllll.co/t/crow-druid-scripts/25974/292) | W/ delay buffer position jumper: random jumps via the script's own `positionslices` helper (slices of `ii.wdel.position(n,d)`) + random CV outs + scale-quantized out |
 | WMD rand levels V1–V3 | Sanjuro_77 | [25974/193](https://llllllll.co/t/crow-druid-scripts/25974/193) | 4-channel VCA "auto-mix": random levels summing to a max voltage, random/selected channel order |
 | feedback ASR (mono + dual) | driedstr | [25974/228](https://llllllll.co/t/crow-druid-scripts/25974/228) | Analog shift register with feedback table (linear/tanh variants), dual version cross-clocked |
 | coordinates.lua | vinc | [25974/203](https://llllllll.co/t/crow-druid-scripts/25974/203), [gist](https://gist.github.com/vinc6/d2b55f3e64f1b1c2bcab9b87e051e72a) | Quadrant magnitude CV processor (polar decomposition of two CVs) |

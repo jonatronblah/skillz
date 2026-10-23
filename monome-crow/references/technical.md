@@ -97,7 +97,8 @@ Flash layout (512 kB total):
 
 ## 8. Electrical / patching notes
 
-- All jacks accept and output [−5, +10] V; **16-bit** resolution ≈ 0.3 mV/step.
+- All jacks accept and output [−5, +10] V; **16-bit** resolution ≈ **0.23 mV/step** (15 V span /
+  65536 steps).
 - Inputs are high-impedance CV inputs (suitable for gates, envelopes, LFOs, and — with `freq`/
   `volume`/`peak` modes — audio analysis at reduced rate).
 - 1V/oct pitch tracking: 0 V = middle C (261.63 Hz; monome docs call it "C3"), 1.0 V = one octave.

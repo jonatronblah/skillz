@@ -141,7 +141,7 @@ chars, e.g. `^^s`).
 | `^^ii.<name>(...)` | ii query replies **when a Lua `.event` handler forwards them** (current firmware does not auto-forward — install a handler, see `ii-overview.md`) |
 | `^^pub …` / `^^pupdate …` | `public` discovery/sync traffic |
 | `^^version('x.y.z')` / `^^identity('0x…')` | solicited responses |
-| plain lines | `print()` output; also Lua errors: `syntax error`, `runtime error`, `evaluation failed`, `!chunk too long!`, `CPU timed out` (some paths arrive backslash-prefixed) |
+| plain lines | `print()` output; also Lua errors: `syntax error`, `runtime error`, `evaluation failed`, `!chunk too long!`, `CPU timed out.` (some paths arrive backslash-prefixed) |
 
 ### Error handling
 

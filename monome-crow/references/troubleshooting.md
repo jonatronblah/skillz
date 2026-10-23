@@ -459,6 +459,12 @@ end
 `set_timeout(coro, fn)` variant appears in the same post; its second block has a stray `)` in
 `clock.cancel(coro))` — delete one when pasting.)
 
+**NB — mode conflict in the verbatim script**: `input[2].mode('clock', …)` raises **no** `.change`
+event and excludes `'change'` mode (§2.7), so the handler above is dead as printed. The thread's
+own follow-up *(Galapagoose, [25974/146](https://llllllll.co/t/crow-druid-scripts/25974/146))* keeps
+`'clock'` mode and polls `input[2].volts > 2` inside a `clock.run` loop with `clock.sleep(0.01)` to
+detect edges — or switch the input to `'change'` mode if you don't need the clock.
+
 ---
 
 ## 3. Watchdog & CPU load
@@ -1266,7 +1272,7 @@ Carry these as caveats; don't treat as settled:
   both true but different layers (event delivery vs ADC rate); expect ~1.5–3 ms end-to-end.
 - **Script size limit** — **resolved**: 16380 bytes (PR #396); the 8 kB figure in older docs/posts
   is stale. REPL chunk limit remains 2048 bytes.
-- **Geode `/1638.4` scaling** — **resolved from firmware source** (see §5.8): `play_note`/
+- **Geode `/1638.3` scaling** — **resolved from firmware source** (see §5.8): `play_note`/
   `play_voice` args are `s16V` (always ×1638.3), Geode reads raw wire ints, so **divide by 1638.3**;
   the failed retune experiments used `s8` args which don't scale at all.
 - **Galapagoose `set_timeout` variant** *(25974/144)* contains a stray `)` — see §2.12 note.

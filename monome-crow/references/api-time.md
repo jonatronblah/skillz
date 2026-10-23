@@ -40,12 +40,12 @@ mycounter:stop()
   `metro.free_all()`.
 - **`count = N` yields N+1 ticks** (the C stop rule tests the post-increment counter), and the
   `event` callback receives the 1-based stage number — useful for bar counting
-  (`count = 16` + the stage arg = a 16-step bar).
+  (`count = 15` + the stage arg = a **16**-tick bar; generally `count = steps − 1`).
 - Params update live: `metro[1].event = f`, `mycounter.time = 0.1`. **Source gotcha: a time change
   applies from the next wakeup**, not immediately.
 - Minimum period is clamped to **0.0005 s** (crash guard).
 - The `event` callback receives the current **stage number** (1-based), not a boolean — useful for
-  counting (`metro[1].count = 16` + a stage counter = a bar counter).
+  counting (`metro[1].count = 15` + a stage counter = a 16-tick bar counter).
 - **Gotcha (official docs):** if you use `delay` and `metro` in the same script, initialize metros
   with `metro.init` and **do not** index `metro[n]` directly.
 - `crow.reset()` frees all metros.
