@@ -9,6 +9,8 @@ A coding agent skill for programming the [monome crow](https://monome.org/docs/c
 - **W/Tape** (`ii.wtape`): recording, playback, looping, vari-speed
 - **W/Del** (`ii.wdel`): delay, feedback, freeze, modulation, clock sync
 - **W/Syn** (`ii.wsyn`): FM synthesis, polyphony, vactrol LPG, patching
+- **ii cheat sheet**: commands and queries for every supported ii device — ansible, crow, Disting EX, ER-301, 16n Faderbank, TXi, TXO, and more (from [bowery](https://github.com/awesomebrick/bowery))
+- **Algorithmic & generative patterns**: Euclidean rhythms, Lorenz/gingerbreadman chaos, boids flocking, shift registers, boolean logic, CV delay, sequins data banks
 
 ## Usage
 
@@ -22,3 +24,5 @@ This skill is automatically invoked when writing or debugging crow Lua scripts, 
 - [W/Tape ii](https://github.com/whimsicalraps/wslash/wiki/Tape#ii)
 - [W/Del ii](https://github.com/whimsicalraps/wslash/wiki/Del#ii)
 - [W/Syn ii](https://github.com/whimsicalraps/wslash/wiki/Syn#ii)
+- [bowery example scripts](https://github.com/awesomebrick/bowery)
+- [ii cheat sheet (all devices)](https://github.com/awesomebrick/bowery/blob/main/twigs/ii_help.txt)

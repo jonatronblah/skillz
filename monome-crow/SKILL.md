@@ -1,7 +1,7 @@
 ---
 name: monome-crow
-description: Program the monome crow eurorack module using Lua. Covers the full crow Lua API (input, output, ASL, sequins, metro, clock, timeline, hotswap, ii, public, calibration) and i2c control of companion modules (Just Friends, W/Tape, W/Del, W/Syn).
-version: 1.0.0
+description: Program the monome crow eurorack module using Lua. Covers the full crow Lua API (input, output, ASL, sequins, metro, clock, timeline, hotswap, ii, public, calibration), i2c control of companion modules (Just Friends, W/Tape, W/Del, W/Syn), a cheat sheet of ii commands for every supported device (ansible, Disting EX, ER-301, 16n Faderbank, TXi, TXO, and more), and algorithmic/generative patterns (Euclidean rhythms, boids, chaos maps, shift registers).
+version: 1.1.0
 license: MIT
 author: "@monome-community"
 tags:
@@ -25,6 +25,8 @@ Use this skill when writing, debugging, or explaining Lua scripts for the **mono
 - Explaining crow API functions (input, output, ASL, sequins, metro, clock, timeline, ii, public)
 - Controlling Just Friends via i2c from crow
 - Controlling W/Tape, W/Del, or W/Syn via i2c from crow
+- Controlling other ii devices: ansible, Disting EX, ER-301, 16n Faderbank, TXi, TXO
+- Building algorithmic/generative patches: Euclidean rhythms, boids, chaos maps, shift registers
 - Debugging crow scripts or i2c communication
 - Designing sequencers, arpeggiators, or generative systems on crow
 - Questions about crow's Lua scripting environment
@@ -108,6 +110,8 @@ Custom handlers:
 ```lua
 input[1].stream = function(volts) <your_function> end
 input[1].change = change_handler_function
+input[1].scale  = function(note) <use note.volts> end  -- 'scale' mode: fires on each newly detected note
+input[1].window = function(win, dir) end                -- 'window' mode: fires on window change (win = window index)
 ```
 
 ---
@@ -377,11 +381,13 @@ clock.cleanup()      -- kill all running clocks
 #### Tempo & Timing
 
 ```lua
-clock.tempo = t           -- set BPM
-_ = clock.tempo           -- get BPM
-_ = clock.get_beats       -- beats since clock started
-_ = clock.get_beat_sec    -- length of a beat in seconds
+clock.tempo = t               -- set BPM
+_ = clock.tempo               -- get BPM
+_ = clock.get_beats()         -- beats since clock started
+_ = clock.get_beat_sec()      -- length of a beat in seconds
 ```
+
+**NB**: `clock.get_beats` and `clock.get_beat_sec` are **functions** — call them with `()`. Using the bare symbol in arithmetic raises `attempt to perform arithmetic on a function value` (verified on hardware).
 
 #### Start/Stop
 
@@ -566,6 +572,8 @@ ii.txi.event = function(e, value)
 end
 ```
 
+**NB — there are no per-device handles** (verified against crow source: `lua/ii.lua`, `lib/l_ii_mod.c`): `ii.mod[n]` switches the module's *shared* i2c address and returns the **same table**. Always index at call time (`ii.wtape[2].record(1)`). Caching the result (`local t = ii.wtape[2]`) makes later calls silently send to whichever address was set *last*. Commands to an address with no device attached are silently ignored — no ACK checking, no error. Devices ship at a factory address (W/Tape: `0x71`); a second unit must be configured at the next address (W/Tape: `0x72`, per crow's `lua/ii/wtape.lua`) before `ii.mod[2]` can reach it.
+
 #### Raw ii Access
 
 ```lua
@@ -598,6 +606,23 @@ ii.crow[2].volts(1,4.2)  -- set output[1] on crow[2]
 ii.fastmode(state)  -- true = max speed (~4x), false = default
 ii.pullup(state)     -- true = on (default), false = off
 ```
+
+#### Crow as an ii Follower (`ii.self`)
+
+Other devices (e.g. Teletype) can call *this* crow over ii. Bind handlers to the fixed slots:
+
+```lua
+ii.self.call2 = function(x, y)   -- "call" slots fire side effects (call1-4 = 1-4 args)
+  output[1].volts = x
+  output[2](true)
+end
+
+ii.self.query1 = function(x)     -- "query" slots must return a value (query0-3 = 0-3 args)
+  return input[x].volts
+end
+```
+
+On the caller's side these appear as `ii.crow.call2(x, y)` / `ii.crow.get('query1', x)` (see the ii cheat sheet below).
 
 ---
 
@@ -844,7 +869,17 @@ ii.wdel.mod_amount(amount)        -- modulation depth
 
 #### Getters
 
-None (as of current documentation).
+```lua
+ii.wdel.get('feedback')    -- feedback amount
+ii.wdel.get('mix')         -- wet/dry mix
+ii.wdel.get('filter')      -- filter cutoff
+ii.wdel.get('freeze')      -- freeze state
+ii.wdel.get('time')        -- delay time
+ii.wdel.get('rate')        -- tape speed multiplier
+ii.wdel.get('freq')        -- tape speed as V/8
+ii.wdel.get('mod_rate')    -- modulation rate
+ii.wdel.get('mod_amount')  -- modulation depth
+```
 
 ---
 
@@ -877,8 +912,362 @@ ii.wsyn.patch(jack, param)             -- assign jack to param:
 #### Getters
 
 ```lua
-ii.wsyn.get('fm_ratio')  -- returns current FM ratio
+ii.wsyn.get('ar_mode')       -- 1 if attack-release mode active
+ii.wsyn.get('curve')         -- waveform position (-5..5)
+ii.wsyn.get('ramp')          -- symmetry (-5..5)
+ii.wsyn.get('fm_index')      -- FM amount (-5..5)
+ii.wsyn.get('fm_env')        -- FM envelope amount (-5..5)
+ii.wsyn.get('fm_ratio')      -- current FM ratio
+ii.wsyn.get('lpg_time')      -- vactrol time (-5..5)
+ii.wsyn.get('lpg_symmetry')  -- vactrol AR character (-5..5)
+ii.wsyn.get('patch', jack)   -- param assigned to jack (1=THIS, 2=THAT)
+ii.wsyn.get('voices')        -- current voice count
 ```
+
+---
+
+## ii Cheat Sheet — All Supported Devices
+
+Compiled from `ii.<module>.help()` outputs on crow (early 2025). Source: [bowery ii_help.txt](https://github.com/awesomebrick/bowery/blob/main/twigs/ii_help.txt). The curated "i2c Device References" above go deep on four modules; this section is the complete command/query index for **every** device crow can lead on the ii bus: ansible, crow, disting, er301, faders (16n), jf, kria, levels, meadowphysics, txi, txo, wdel, wsyn, wtape.
+
+Responses to every `.get()` arrive through the shared event pattern (identical for all devices):
+
+```lua
+ii.<device>.event = function(e, value)
+  if e.name == '<param>' then
+    -- e.arg: first argument of the get (eg channel); e.device: index of device
+  end
+end
+```
+
+### ansible (`ii.ansible`)
+
+```lua
+-- commands
+ii.ansible.trigger( channel, state )
+ii.ansible.trigger_toggle( channel )
+ii.ansible.trigger_pulse( channel )
+ii.ansible.trigger_time( channel, time )
+ii.ansible.trigger_polarity( channel, polarity )
+ii.ansible.cv( channel, volts )
+ii.ansible.cv_slew( channel, time )
+ii.ansible.cv_offset( channel, volts )
+ii.ansible.cv_set( channel, volts )
+-- queries
+ii.ansible.get( 'trigger', channel )
+ii.ansible.get( 'trigger_time', channel )
+ii.ansible.get( 'trigger_polarity', channel )
+ii.ansible.get( 'cv', channel )
+ii.ansible.get( 'cv_slew', channel )
+ii.ansible.get( 'cv_offset', channel )
+ii.ansible.get( 'input', channel )
+```
+
+### crow (`ii.crow`) — crow as an ii target
+
+```lua
+-- commands
+ii.crow.volts( channel, level )
+ii.crow.slew( channel, time )
+ii.crow.call1( arg )
+ii.crow.call2( arg1, arg2 )
+ii.crow.call3( arg1, arg2, arg3 )
+ii.crow.call4( arg1, arg2, arg3, arg4 )
+ii.crow.reset( )
+ii.crow.pulse( chan, time, level, polarity )
+ii.crow.ar( chan, attack, release, level )
+ii.crow.lfo( chan, freq, level, skew )
+-- queries
+ii.crow.get( 'input', channel )
+ii.crow.get( 'output', channel )
+ii.crow.get( 'query0' )
+ii.crow.get( 'query1', arg1 )
+ii.crow.get( 'query2', arg1 )
+ii.crow.get( 'query3', arg1, arg2 )
+```
+
+Handle incoming `call`/`query` on the target crow with `ii.self` (see "Crow as an ii Follower" above).
+
+### disting — Disting EX (`ii.disting`)
+
+```lua
+-- commands
+ii.disting.load_preset( number )
+ii.disting.save_preset( value )
+ii.disting.reset_preset( )
+ii.disting.algorithm( algorithm )
+ii.disting.controller( controller, value )
+ii.disting.parameter( parameter, value )
+ii.disting.scale_parameter( parameter, value )
+ii.disting.wav_record( action )
+ii.disting.wav_playback( action )
+ii.disting.al_pitch( pitch )
+ii.disting.al_clock( )
+ii.disting.lp_clear( )
+ii.disting.midi( status, b0, b1 )
+ii.disting.select_bus( status, b0, b1 )
+ii.disting.voice_pitch( voice, pitch )
+ii.disting.voice_on( voice, velocity )
+ii.disting.voice_off( voice )
+ii.disting.note_pitch( note_id, pitch )
+ii.disting.note_velocity( note_id, velocity )
+ii.disting.note_off( note_id )
+ii.disting.all_notes_off( )
+ii.disting.dual_parameter( side, param, value )
+ii.disting.dual_scale_parameter( side, param, value )
+ii.disting.dual_algorithm( side, algorithm )
+ii.disting.dual_algorithms( algorithm_left, algorithm_right )
+ii.disting.load_dual_preset( side, preset )
+ii.disting.save_dual_preset( side, preset )
+ii.disting.take_over_z( side, value )
+-- queries
+ii.disting.get( 'preset' )
+ii.disting.get( 'algorithm' )
+ii.disting.get( 'parameter', parameter )
+ii.disting.get( 'parameter_min', parameter )
+ii.disting.get( 'parameter_max', parameter )
+ii.disting.get( 'lp_state', loop )
+ii.disting.get( 'dual_parameter', side )
+ii.disting.get( 'dual_parameter_min', side )
+ii.disting.get( 'dual_parameter_max', side )
+```
+
+### er301 (`ii.er301`)
+
+```lua
+-- commands (no queries)
+ii.er301.tr( port, state )
+ii.er301.tr_tog( port )
+ii.er301.tr_pulse( port )
+ii.er301.tr_time( port, ms )
+ii.er301.tr_pol( port, rising )
+ii.er301.cv( port, volts )
+ii.er301.cv_slew( port, ms )
+ii.er301.cv_set( port, volts )
+ii.er301.cv_off( port, volts )
+```
+
+### faders — 16n Faderbank (`ii.faders`)
+
+```lua
+-- queries only (read fader 1-16)
+ii.faders.get( 1 )
+-- ... through ...
+ii.faders.get( 16 )
+
+-- responses: e.name is the fader number itself
+ii.faders.event = function( e, value )
+  if e.name == 1 then  -- fader 1 value
+  end
+end
+```
+
+### jf — Just Friends (`ii.jf`)
+
+Full curated reference above (trigger modes, synthesis/Geode, getters). Complete index:
+
+```lua
+-- commands
+ii.jf.trigger( channel, state )
+ii.jf.run_mode( mode )
+ii.jf.run( volts )
+ii.jf.transpose( pitch )
+ii.jf.vtrigger( channel, level )
+ii.jf.mode( mode )
+ii.jf.tick( clock_or_bpm )
+ii.jf.play_voice( channel, pitch_or_divs, level_or_repeats )
+ii.jf.play_note( pitch_or_divs, level_or_repeats )
+ii.jf.god_mode( state )
+ii.jf.retune( channel, numerator, denominator )
+ii.jf.quantize( divisions )
+ii.jf.pitch( channel, pitch )
+ii.jf.address( index )
+-- queries
+ii.jf.get( 'trigger', channel )
+ii.jf.get( 'run_mode' )
+ii.jf.get( 'run' )
+ii.jf.get( 'transpose' )
+ii.jf.get( 'mode' )
+ii.jf.get( 'tick' )
+ii.jf.get( 'god_mode' )
+ii.jf.get( 'quantize' )
+ii.jf.get( 'speed' )
+ii.jf.get( 'tsc' )
+ii.jf.get( 'ramp' )
+ii.jf.get( 'curve' )
+ii.jf.get( 'fm' )
+ii.jf.get( 'time' )
+ii.jf.get( 'intone' )
+```
+
+### kria — ansible kria (`ii.kria`)
+
+```lua
+-- commands
+ii.kria.preset( number )
+ii.kria.pattern( number )
+ii.kria.scale( number )
+ii.kria.period( time )
+ii.kria.position( track, param, pos )
+ii.kria.loop_start( track, param, pos )
+ii.kria.loop_length( track, param, pos )
+ii.kria.reset( track, param )
+ii.kria.mute( track, state )
+ii.kria.toggle_mute( track )
+ii.kria.clock( track )
+ii.kria.page( page )
+ii.kria.cue( pattern )
+ii.kria.direction( track, direction )
+-- queries
+ii.kria.get( 'preset' )
+ii.kria.get( 'pattern' )
+ii.kria.get( 'scale' )
+ii.kria.get( 'period' )
+ii.kria.get( 'position', track, param )
+ii.kria.get( 'loop_start', track, param )
+ii.kria.get( 'loop_length', track, param )
+ii.kria.get( 'reset', track )
+ii.kria.get( 'mute', track )
+ii.kria.get( 'cv', track )
+ii.kria.get( 'duration' )
+```
+
+### levels — ansible levels (`ii.levels`)
+
+```lua
+-- commands
+ii.levels.preset( number )
+ii.levels.reset( now )
+ii.levels.position( pos )
+ii.levels.loop_start( pos )
+ii.levels.loop_length( pos )
+ii.levels.loop_direction( direction )
+-- queries
+ii.levels.get( 'preset' )
+ii.levels.get( 'position' )
+ii.levels.get( 'loop_start' )
+ii.levels.get( 'loop_length' )
+ii.levels.get( 'loop_direction' )
+ii.levels.get( 'cv', track )
+```
+
+### meadowphysics (`ii.meadowphysics`)
+
+```lua
+-- commands
+ii.meadowphysics.preset( number )
+ii.meadowphysics.reset( track )
+ii.meadowphysics.stop( track )
+ii.meadowphysics.scale( number )
+ii.meadowphysics.period( time )
+-- queries
+ii.meadowphysics.get( 'preset' )
+ii.meadowphysics.get( 'stop' )
+ii.meadowphysics.get( 'scale' )
+ii.meadowphysics.get( 'period' )
+ii.meadowphysics.get( 'cv', track )
+```
+
+### txi (`ii.txi`)
+
+```lua
+-- queries only (no commands)
+ii.txi.get( 'param', channel )
+ii.txi.get( 'param_quant', channel )
+ii.txi.get( 'param_N', channel )
+ii.txi.get( 'in', channel )
+ii.txi.get( 'in_quant', channel )
+ii.txi.get( 'in_N', channel )
+```
+
+### txo (`ii.txo`)
+
+```lua
+-- commands only (no queries)
+-- triggers
+ii.txo.tr( port, state )
+ii.txo.tr_tog( port )
+ii.txo.tr_pulse( port )
+ii.txo.tr_time( port, ms )
+ii.txo.tr_pol( port, rising )
+ii.txo.tr_time_s( port, s )
+ii.txo.tr_time_m( port, m )
+ii.txo.tr_pulse_div( port, pulses )
+ii.txo.tr_m( port, ms )
+ii.txo.tr_m_s( port, s )
+ii.txo.tr_m_m( port, m )
+ii.txo.tr_m_bpm( port, bpm )
+ii.txo.tr_m_act( port, state )
+ii.txo.tr_m_sync( port, state )
+ii.txo.tr_m_width( port, width )
+ii.txo.tr_m_count( port, count )
+ii.txo.tr_m_mul( port, mult )
+ii.txo.tr_pulse_mute( port, state )
+-- CV
+ii.txo.cv( port, volts )
+ii.txo.cv_slew( port, ms )
+ii.txo.cv_set( port, volts )
+ii.txo.cv_off( port, volts )
+ii.txo.cv_slew_s( port, s )
+ii.txo.cv_slew_m( port, m )
+ii.txo.cv_qt( port, qt )
+ii.txo.cv_qt_set( port, qt )
+ii.txo.cv_n( port, note )
+ii.txo.cv_n_set( port, note )
+ii.txo.cv_scale( port, scale )
+ii.txo.cv_log( port, scale )
+-- oscillators
+ii.txo.osc( port, volts )
+ii.txo.osc_set( port, volts )
+ii.txo.osc_qt( port, volts )
+ii.txo.osc_qt_set( port, volts )
+ii.txo.osc_n( port, note )
+ii.txo.osc_n_set( port, note )
+ii.txo.osc_fq( port, fq )
+ii.txo.osc_fq_set( port, fq )
+ii.txo.osc_lfo( port, fq )
+ii.txo.osc_lfo_set( port, fq )
+ii.txo.osc_wave( port, wave )
+ii.txo.osc_sync( port, sync )
+ii.txo.osc_phase( port, phase )
+ii.txo.osc_width( port, width )
+ii.txo.osc_rect( port, pol )
+ii.txo.osc_slew( port, ms )
+ii.txo.osc_slew_s( port, s )
+ii.txo.osc_slew_m( port, m )
+ii.txo.osc_scale( port, scale )
+ii.txo.osc_cyc( port, ms )
+ii.txo.osc_cyc_s( port, s )
+ii.txo.osc_cyc_m( port, m )
+ii.txo.osc_cyc_set( port, ms )
+ii.txo.osc_cyc_s_set( port, s )
+ii.txo.osc_cyc_m_set( port, m )
+ii.txo.osc_ctr( port, ctr )
+-- envelopes
+ii.txo.env_act( port, state )
+ii.txo.env_att( port, ms )
+ii.txo.env_att_s( port, s )
+ii.txo.env_att_m( port, m )
+ii.txo.env_dec( port, ms )
+ii.txo.env_dec_s( port, s )
+ii.txo.env_dec_m( port, m )
+ii.txo.env_trig( port, state )
+ii.txo.env_eoc( port, state )
+ii.txo.env_eor( port, state )
+ii.txo.env_loop( port, state )
+ii.txo.env( port, state )
+-- management
+ii.txo.kill( port )
+ii.txo.tr_init( port )
+ii.txo.cv_init( port )
+ii.txo.cv_calib( port )
+ii.txo.cv_reset( port )
+ii.txo.init( unit )
+```
+
+### wdel / wsyn / wtape — W/Del, W/Syn, W/Tape
+
+See the curated "i2c Device References" above — the cheat sheet's command/query indexes for these three devices match those sections (their getters have been merged in there).
 
 ---
 
@@ -1027,6 +1416,280 @@ end
 
 ---
 
+## Algorithmic & Generative Patterns
+
+Distilled from the [bowery](https://github.com/awesomebrick/bowery) example scripts.
+
+### Euclidean Rhythms (Bjorklund interleave)
+
+Distribute `fill` pulses as evenly as possible across `length` steps; rotate by an offset for classic Euclidean rhythms (bowery/euclidean.lua):
+
+```lua
+-- returns true if step ix of (fill, length) is a pulse
+function er(fill, length, ix)
+  local r = {}
+  for i = 1, length do r[i] = { i <= fill } end
+  local function cat(t, dst, src)  -- append table src into table dst
+    for _, v in ipairs(t[src]) do table.insert(t[dst], v) end
+    t[src] = nil
+  end
+  while #r > fill do  -- interleave empties into pulses
+    for i = 1, math.min(fill, #r - fill) do cat(r, i, #r) end
+  end
+  while #r > 1 do cat(r, #r - 1, #r) end  -- flatten
+  return r[1][ix]
+end
+
+-- per clock trigger, per channel n:
+--   locations[n] = (locations[n] + 1) % length
+--   if er(fill, length, (locations[n] + offset) % length + 1) then output[n]() end
+```
+
+### Chaos Source: Lorenz Attractor
+
+Euler-integrate the Lorenz system and map state to CV; run at ~1kHz (bowery/lorenz.lua):
+
+```lua
+lorenz = { sigma = 10, rho = 28, beta = 8/3, state = {0.01, 0, 0}, dt = 0.001 }
+
+function lorenz:process()
+  local s = self.state
+  local dx = self.sigma * (s[2] - s[1])
+  local dy = s[1] * (self.rho - s[3]) - s[2]
+  local dz = s[1] * s[2] - self.beta * s[3]
+  s[1], s[2], s[3] = s[1] + dx*self.dt, s[2] + dy*self.dt, s[3] + dz*self.dt
+end
+
+function lorenz_loop()
+  while true do
+    lorenz:process()
+    -- normalize x (-25..35) to -5..5 V
+    output[1].volts = 10 * (lorenz.state[1] + 25) / 60 - 5
+    -- exponential speed mapping from a CV input
+    lorenz.dt = math.exp((input[2].volts - 1) / 3) / 1000 - 0.00005
+    clock.sleep(1/1000)
+  end
+end
+```
+
+### Chaos Source: Gingerbreadman Map
+
+Tiny chaotic map stepped per clock trigger — great for melodies (bowery/gingerbread.lua):
+
+```lua
+bread = { x = 0.5, y = 0.5 }
+
+function bread:step(xoff, yoff)  -- offsets from input[n].volts
+  local x1 = self.x
+  self.x = 0.5 - self.y + math.abs(x1) + xoff
+  self.y = x1 + yoff
+  if self.x > 5 then self.x = 5.0 end
+  if self.y > 5 then self.y = 5.0 end
+end
+```
+
+### Boids Flocking (1D)
+
+Flocking across the 4 outputs: each boid has position (volts) and velocity; steer toward a centre (blend with a CV input), avoid neighbours, match their velocity. Update one boid per tick (bowery/boids.lua):
+
+```lua
+boids = { {p=0,v=0}, {p=1,v=0}, {p=2,v=0}, {p=3,v=0} }
+
+function move_boid(n, c, accel)
+  local b = boids[n]
+  local avoid = 0
+  for m = 1, #boids do
+    if m ~= n and math.abs(boids[m].p - b.p) < public.avoid then
+      avoid = avoid - (boids[m].p - b.p) / 2
+    end
+  end
+  local v_avg = 0
+  for m = 1, #boids do if m ~= n then v_avg = v_avg + boids[m].v end end
+  v_avg = v_avg / (#boids - 1)
+  b.v = b.v + (c - b.p) * public.pull + avoid + (v_avg - b.v) * public.sync
+  b.v = math.max(-public.limit, math.min(public.limit, b.v))
+  b.p = b.p + b.v * accel
+  output[n].volts = b.p
+end
+
+function flock()
+  local n = 1
+  while true do
+    local c = (input[1].volts + 5) / 2     -- centre follows input 1
+    local accel = (input[2].volts + 5) / 5 -- acceleration follows input 2
+    move_boid(n, c, accel)
+    n = (n % 4) + 1                        -- round-robin
+    clock.sleep(0.01 / 4)
+  end
+end
+```
+
+### Analog Shift Register (ASR)
+
+On each trigger, outputs present the previous stages, then shift a new sample in at the front (bowery/shiftregister.lua):
+
+```lua
+reg = {0, 0, 0, 0}
+
+input[1].mode('change', 1, 0.1, 'rising')
+input[1].change = function()
+  for n = 1, 4 do
+    output[n].volts = reg[n]
+  end
+  table.remove(reg)                    -- drop the oldest
+  table.insert(reg, 1, input[2].volts) -- push the new sample to the front
+end
+```
+
+### Boolean Logic
+
+Two gate inputs through a selectable logic function per output (bowery/booleans.lua):
+
+```lua
+fns = { ['&']  = function(a,b) return a and b end
+      , ['|']  = function(a,b) return a or b end
+      , ['^']  = function(a,b) return a ~= b end    -- XOR
+      , ['~^'] = function(a,b) return a == b end    -- XNOR
+      }  -- also buildable: ~|, ~&, >, <, <=, >=
+fnames = {'~|','>','<','&','~^','^','~&','<=','>=','|'}
+public{f1 = '&'}:options(fnames):action(apply)
+
+function gate(n) return input[n].volts > 1.0 end
+
+function apply()
+  output[1].volts = fns[public.f1](gate(1), gate(2)) and 5 or 0
+end
+
+function init()
+  for n = 1, 2 do
+    input[n].mode('change', 1, 0.1, 'both')
+    input[n].change = apply
+  end
+end
+```
+
+### CV Delay (bucket brigade)
+
+Stream an input at 1kHz into a circular buffer; each output reads an independent tap; a CV crossfades between endlessly looping and overwriting (bowery/cvdelay.lua):
+
+```lua
+LENGTH = 1000
+bucket = {}
+write_ix = 1
+
+function peek(tap)
+  local ix = (math.floor(write_ix - tap - 1) % LENGTH) + 1
+  return bucket[ix] or 0
+end
+
+function poke(v, ix)
+  -- 0 = keep looping the old value, 1 = overwrite with the new
+  local c = math.min(1, math.max(0, input[2].volts / 4.5))
+  bucket[ix] = v + c * ((bucket[ix] or v) - v)
+end
+
+function init()
+  input[1].mode('stream', 0.001)
+end
+
+input[1].stream = function(v)
+  output[1].volts = peek(100)  -- tap 1: 100 samples behind
+  output[2].volts = peek(250)  -- tap 2
+  poke(v, write_ix)
+  write_ix = (write_ix % LENGTH) + 1
+end
+```
+
+### Runtime Clock-Division Presets
+
+Swap all four output divisions live via a window-quantized CV input, without re-syncing the clocks (bowery/clockdiv.lua):
+
+```lua
+presets = { {5,7,11,13}, {3,5,7,11}, {1,2,3,4}, {8,16,32,64} }
+preset_ix = 1
+
+function init()
+  for n = 1, 4 do output[n]:clock(4) end
+  input[2].mode('window', {-3,-1,1,3})
+end
+
+input[2].window = function(win, dir)
+  preset_ix = win
+  for n = 1, 4 do
+    output[n].clock_div = presets[preset_ix][n]  -- live re-divide, no re-sync
+  end
+end
+```
+
+### One Sequins as a Data Bank
+
+krahenlied.lua drives a whole piece from a single sequins built from a text string; `:settable()` hot-swaps the data from the REPL:
+
+```lua
+-- turn a string into a sequins of numbers (ASCII % 32 + 1)
+function process_string(s)
+  local t = {}
+  for i = 1, #s do table.insert(t, s:byte(i) % 32 + 1) end
+  return t
+end
+
+melody = sequins(process_string('crow poetry here'))
+
+function text(str)  -- call from the REPL to hot-swap the data
+  melody:settable(process_string(str))
+end
+```
+
+bowery/krahenlied.lua also reads the same sequins with different `:step(n)()` values to derive note, duration, and timbre lanes from one table.
+
+### Polling ii Getters
+
+Request params one at a time and handle replies in the event handler; pace requests to avoid i2c congestion (bowery/twigs/w_slash_stats.lua):
+
+```lua
+ii.wdel.event = function(e, value)
+  print(e.name .. ' = ' .. value)
+end
+
+function poll()
+  while true do
+    for _, name in ipairs{'feedback', 'mix', 'time', 'rate'} do
+      ii.wdel.get(name)
+      clock.sleep(0.0015)  -- pace requests to avoid i2c congestion
+    end
+    clock.sleep(0.3)       -- full sweep every 300ms
+  end
+end
+```
+
+Two-arg getters work the same way, eg `ii.wsyn.get('patch', 1)`.
+
+### Strum (spreading a chord on Just Friends)
+
+```lua
+function strum(notes)
+  local t, mult = 0.02, 1.3
+  for i = 1, #notes do
+    ii.jf.play_note(notes[i] / 12, 3)
+    clock.sleep(t)
+    t = t * mult  -- each gap longer than the last
+  end
+end
+```
+
+### Idioms (one-liners)
+
+```lua
+dest = (dest % 4) + 1                       -- rotate a destination: sequential switch / round-robin fan-out
+ii.jf.tick(clock.tempo)                     -- keep JF's Geode timebase locked to crow's tempo
+output[n](lfo(dyn{freq=1}, 5))              -- CV-controlled LFO bank: update output[n].dyn.freq
+                                            --   from an input stream handler (acquaintances.lua)
+output[1].volts = hztovolts(f)              -- Hz -> V/8 inside an input[1].freq handler
+                                            --   (input[1].mode('freq', 0.01) -- input 1 only)
+```
+
+---
+
 ## References
 
 - **crow reference**: https://monome.org/docs/crow/reference/
@@ -1037,3 +1700,5 @@ end
 - **W/Del ii**: https://github.com/whimsicalraps/wslash/wiki/Del#ii
 - **W/Syn ii**: https://github.com/whimsicalraps/wslash/wiki/Syn#ii
 - **crow community**: https://llllllll.co/
+- **bowery example scripts**: https://github.com/awesomebrick/bowery
+- **ii cheat sheet (all devices)**: https://github.com/awesomebrick/bowery/blob/main/twigs/ii_help.txt
