@@ -1,28 +1,38 @@
 # monome-crow skill
 
-A coding agent skill for programming the [monome crow](https://monome.org/docs/crow/) eurorack module using Lua, including i2c control of companion modules.
+A coding-agent skill for programming the [monome crow](https://monome.org/docs/crow/) eurorack
+module in Lua — full API, druid/serial workflow, i2c control of companion modules, generative
+patterns, and community-tested techniques. Everything is cross-checked against the official docs,
+the crow firmware source, and hardware-tested protocol notes.
 
-## What it covers
+## Layout
 
-- **crow Lua API**: input, output, ASL, sequins, metro, clock, timeline, hotswap, ii, public, calibration
-- **Just Friends** (`ii.jf`): synthesis mode, geode mode, triggers, tuning, velocity
-- **W/Tape** (`ii.wtape`): recording, playback, looping, vari-speed
-- **W/Del** (`ii.wdel`): delay, feedback, freeze, modulation, clock sync
-- **W/Syn** (`ii.wsyn`): FM synthesis, polyphony, vactrol LPG, patching
-- **ii cheat sheet**: commands and queries for every supported ii device — ansible, crow, Disting EX, ER-301, 16n Faderbank, TXi, TXO, and more (from [bowery](https://github.com/awesomebrick/bowery))
-- **Algorithmic & generative patterns**: Euclidean rhythms, Lorenz/gingerbreadman chaos, boids flocking, shift registers, boolean logic, CV delay, sequins data banks
-
-## Usage
-
-This skill is automatically invoked when writing or debugging crow Lua scripts, or when controlling i2c-connected modules from crow.
+- `SKILL.md` — entry point: principles, workflow, routing table, top gotchas
+- `references/api-input-output.md` — input modes/handlers, output volts/slew/shape/scale/clock, built-in actions
+- `references/api-asl.md` — ASL journeys, `dyn`, mutations, limits
+- `references/api-sequins.md` — complete sequins reference
+- `references/api-time.md` — metro, clock, delay, timeline
+- `references/api-environment.md` — lifecycle, tell/print, public, hotswap, cal, randomness, globals, norns
+- `references/druid-and-protocol.md` — druid, the `^^` wire protocol, crow-mcp server
+- `references/technical.md` — hardware, limits, firmware, recovery
+- `references/ii-overview.md` — ii bus mechanics, `ii.self`, wire types
+- `references/ii-just-friends.md` — Just Friends / Just Type / Geode
+- `references/ii-wslash.md` — W/Tape, W/Del, W/Syn
+- `references/ii-other-devices.md` — ansible, crow, disting, er301, faders, kria, levels, meadowphysics, txi, txo
+- `references/patterns-generative.md` — Euclidean, chaos, boids, ASR, CV delay, strum, data banks
+- `references/patterns-musical.md` — musical intent, Maps curriculum, patch archetypes
+- `references/community-techniques.md` — attributed techniques from the lines forum
+- `references/troubleshooting.md` — consolidated pitfalls + symptom index
 
 ## References
 
-- [crow reference](https://monome.org/docs/crow/reference/)
-- [crow source](https://github.com/monome/crow)
+- [crow reference](https://monome.org/docs/crow/reference/) ·
+  [timeline](https://monome.org/docs/crow/timeline/) ·
+  [technical](https://monome.org/docs/crow/technical/) ·
+  [FAQ](https://monome.org/docs/crow/faq/) ·
+  [maps](https://monome.org/docs/crow/maps/) ·
+  [druid](https://monome.org/docs/crow/scripting-druid/)
+- [crow source](https://github.com/monome/crow) · [bowery scripts](https://github.com/monome/bowery)
 - [Just Friends Just-Type](https://github.com/whimsicalraps/Just-Friends/blob/main/Just-Type.md)
-- [W/Tape ii](https://github.com/whimsicalraps/wslash/wiki/Tape#ii)
-- [W/Del ii](https://github.com/whimsicalraps/wslash/wiki/Del#ii)
-- [W/Syn ii](https://github.com/whimsicalraps/wslash/wiki/Syn#ii)
-- [bowery example scripts](https://github.com/awesomebrick/bowery)
-- [ii cheat sheet (all devices)](https://github.com/awesomebrick/bowery/blob/main/twigs/ii_help.txt)
+- [W/ wiki](https://github.com/whimsicalraps/wslash/wiki/)
+- [lines forum](https://llllllll.co/)
